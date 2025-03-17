@@ -2,48 +2,57 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
-
+#include <thread>
 #include "LibCamera.h"
 
 using namespace cv;
 
 
-void captureLoop(LibCamera &cam, std::string windowName) {
+#include <opencv2/imgproc.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui.hpp>
+#include <thread>
+#include "LibCamera.h"
+
+using namespace cv;
+
+void captureLoop(LibCamera &cam) {
     uint32_t width = 640, height = 480, stride;
     cam.configureStill(width, height, formats::RGB888, 1, libcamera::Orientation::Rotate0);
     cam.startCamera();
-    
+
     while (true) {
         LibcameraOutData frameData;
         if (!cam.readFrame(&frameData))
             continue;
-        
-        cv::Mat im(height, width, CV_8UC3, frameData.imageData, stride);
-        cv::imshow(windowName, im);
 
-        char key = cv::waitKey(1);
+        Mat im(height, width, CV_8UC3, frameData.imageData, stride);
+        imshow("libcamera-demo", im);
+
+        char key = waitKey(1);
         if (key == 'q') break;
 
         cam.returnFrameBuffer(frameData);
     }
-    
+
     cam.stopCamera();
     cam.closeCamera();
 }
 
 int main() {
-    LibCamera cam1, cam2;
+    LibCamera cam;
 
-    if (cam1.initCamera(0) || cam2.initCamera(1)) {
-        std::cerr << "Error initializing cameras" << std::endl;
+    if (cam.initCamera(0)) { // 0 — первая камера
+        std::cerr << "Error initializing camera" << std::endl;
         return -1;
     }
 
-    std::thread t1(captureLoop, std::ref(cam1), "Camera 1");
-    std::thread t2(captureLoop, std::ref(cam2), "Camera 2");
-
-    t1.join();
-    t2.join();
+    // Запускаем поток для захвата кадров
+    std::thread cameraThread(captureLoop, std::ref(cam));
+    
+    // Ждем завершения потока
+    cameraThread.join();
 
     return 0;
 }
