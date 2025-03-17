@@ -2,38 +2,7 @@
 
 using namespace std::placeholders;
 
-int LibCamera::initCamera(int camIndex) {
-    int ret;
-    cm = std::make_unique<CameraManager>();
-    ret = cm->start();
-    if (ret) {
-        std::cout << "Failed to start camera manager: " << ret << std::endl;
-        return ret;
-    }
-    
-    if (cm->cameras().size() <= camIndex) {
-        std::cerr << "Camera index out of range!" << std::endl;
-        return 1;
-    }
-
-    cameraId = cm->cameras()[camIndex]->id();
-    camera_ = cm->get(cameraId);
-    if (!camera_) {
-        std::cerr << "Camera " << cameraId << " not found" << std::endl;
-        return 1;
-    }
-
-    if (camera_->acquire()) {
-        std::cerr << "Failed to acquire camera " << cameraId << std::endl;
-        return 1;
-    }
-
-    camera_acquired_ = true;
-    return 0;
-}
-
-/* Работает для одной камеры
-int LibCamera::initCamera() {
+int LibCamera::initCamera(int cameraID) {
     int ret;
     cm = std::make_unique<CameraManager>();
     ret = cm->start();
@@ -42,7 +11,7 @@ int LibCamera::initCamera() {
               << ret << std::endl;
         return ret;
     }
-    cameraId = cm->cameras()[0]->id();
+    cameraId = cm->cameras()[cameraID]->id();
     camera_ = cm->get(cameraId);
     if (!camera_) {
         std::cerr << "Camera " << cameraId << " not found" << std::endl;
@@ -57,7 +26,6 @@ int LibCamera::initCamera() {
     camera_acquired_ = true;
     return 0;
 }
-*/
 
 char * LibCamera::getCameraId(){
     return cameraId.data();
