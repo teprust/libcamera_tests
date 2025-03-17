@@ -38,9 +38,9 @@ int main() {
     } 
 
     int ret1 = cam1.initCamera(0);
-    // int ret2 = cam2.initCamera(1);
+    int ret2 = cam2.initCamera(1);
     cam1.configureStill(width, height, formats::RGB888, 1, libcamera::Orientation::Rotate0);
-    // cam2.configureStill(width, height, formats::RGB888, 1, libcamera::Orientation::Rotate0);
+    cam2.configureStill(width, height, formats::RGB888, 1, libcamera::Orientation::Rotate0);
     ControlList controls_;
     int64_t frame_time = 1000000 / 10;
     // Set frame rate
@@ -52,19 +52,31 @@ int main() {
     // Set the exposure time
     controls_.set(controls::ExposureTime, 20000);
     cam1.set(controls_);
-    // cam2.set(controls_);
-    if (!ret1) {
+    cam2.set(controls_);
+    if (!ret1 & !ret2) {
         bool flag;
-        LibcameraOutData frameData;
+        LibcameraOutData frameData1;
+        LibcameraOutData frameData2;
         cam1.startCamera();
         cam1.VideoStream(&width, &height, &stride);
-        while (true) {
-            flag = cam1.readFrame(&frameData);
-            if (!flag)
-                continue;
-            Mat im(height, width, CV_8UC3, frameData.imageData, stride);
 
-            imshow("libcamera-demo", im);
+        cam2.startCamera();
+        cam2.VideoStream(&width, &height, &stride);
+
+        while (true) {
+            flag1 = cam1.readFrame(&frameData1);
+            flag2 = cam2.readFrame(&frameData2);
+
+            if (!flag1)
+                continue;
+            Mat im(height, width, CV_8UC3, frameData1.imageData, stride);
+
+            if (!flag2)
+                continue;
+            Mat im(height, width, CV_8UC3, frameData2.imageData, stride);
+
+            imshow("libcamera-demo-cam1", im);
+            imshow("libcamera-demo-cam2", im);
             key = waitKey(1);
             if (key == 'q') {
                 break;
@@ -76,11 +88,14 @@ int main() {
                 frame_count = 0;
                 start_time = time(0);
             }
-            cam1.returnFrameBuffer(frameData);
+            cam1.returnFrameBuffer(frameData1);
+            cam2.returnFrameBuffer(frameData2);
         }
         destroyAllWindows();
         cam1.stopCamera();
+        cam2.stopCamera();
     }
     cam1.closeCamera();
+    cam2.closeCamera();
     return 0;
 }
